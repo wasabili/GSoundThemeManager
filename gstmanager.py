@@ -47,8 +47,8 @@ class GSoundThemeManager(object):
     def __init__(self):
         """Initializer"""
 
-        # manage flag
-        self.whileproc = True
+        # manage flags
+        self.reloadtheme = True
 
         # load GUI
         self.builder = gtk.Builder()
@@ -81,9 +81,6 @@ class GSoundThemeManager(object):
         self['chk_winbtn_sounds'].set_active(feedback)
         self['cmb_themes'].set_active_iter(self.data.get_iter_from_theme_id(self.data.get_theme_id(name=curtheme)))
         self.loadtheme()
-
-        # manage flag
-        self.whileproc = False
 
         # start
         self['mainwindow'].show_all()
@@ -146,16 +143,17 @@ class GSoundThemeManager(object):
                 self.data.get_cb(sound_id).set_active(False)
                 self.data.get_preview(sound_id).set_sensitive(False)
 
-        # remove button
+        # remove-button
         self['btn_remove_theme'].set_sensitive(self.data.is_local(theme_id))
 
     def on_cmb_themes_changed(self, widget, *args): # TODO confirm if add/remove theme action doesnt triggers something wrong
-        if self.whileproc:
+        if not self.reloadtheme:
+            # remove-button
+            theme_id = self.data.get_current_theme_id()
+            self['btn_remove_theme'].set_sensitive(self.data.is_local(theme_id))
             return
-        else:
-            self.whileproc = True
-            self.loadtheme()
-            self.whileproc = False
+
+        self.loadtheme()
 
     def on_btn_add_theme_clicked(self, widget, *args):
         count = len(self.customnames)
@@ -228,7 +226,8 @@ class GSoundThemeManager(object):
             if cb_status:
                 dic[sound_id] = fc_status
             else:
-                del dic[sound_id]
+                if sound_id in dic:
+                    del dic[sound_id]
             self.set_as_customized(dic)
         else:
             return
@@ -293,7 +292,7 @@ class GSoundThemeManager(object):
 
     def set_as_customized(self, dic):
 
-        self.whileproc = True
+        self.reloadtheme = False
 
         theme_id = self.data.get_current_theme_id()
 
@@ -312,7 +311,7 @@ class GSoundThemeManager(object):
             else:
                 self['cmb_themes'].set_active_iter(self.data.get_iter_from_theme_id(custom_theme_id)) # TODO confirm asdflhasdga...
 
-        self.whileproc = False
+        self.reloadtheme = True
 
     def __getitem__(self, key):
         return self.builder.get_object(key)
