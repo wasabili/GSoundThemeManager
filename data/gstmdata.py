@@ -1,0 +1,153 @@
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
+
+from gstmconsts import *
+from gstmcore import findthemes
+
+class GSTMdata(object):
+
+    id_islocal = {}
+    id_top = {}
+    id_name = {}
+    id_dic = {}
+    id_existance = {}
+    
+    islocal_id = {}
+    top_id = {}
+    name_id = {}
+    dic_id = {}
+    existance_id = {}
+
+    sound_ids = set([])
+
+    id_fc = {}
+    id_cb = {}
+    id_preview = {}
+
+    fc_id = {}
+    cb_id = {}
+    preview_id = {}
+
+    def __init__(self, liststore, combobox):
+        self.combobox = combobox
+        self.liststore = liststore
+        self.treemodel = combobox.get_model()
+
+        # islocal, top, name, dic
+        for islocal, top, name, dic in findthemes():
+            self._append_theme(islocal, top, name, dic, True)
+
+    def get_sound_ids(self):
+        return self.sound_ids.copy()
+
+    def _get_id_fc(self):
+        return self.id_fc
+
+    def get_current_theme_id(self):
+        return self.treemodel.get_string_from_iter(self.combobox.get_active_iter())
+
+    def get_iter_from_theme_id(self, theme_id):
+        return self.treemodel.get_iter_from_string(theme_id)
+
+    def get_theme_id(self, name=None, dic=None):
+        if name is not None:
+            for key in self.name_id.iterkeys():
+                if key.lower() == name.lower():
+                    return self.name_id[key]
+        if dic is not None:
+            for value in self.id_dic.itervalues():
+                if value == dic:
+                    return self.dic_id[id(value)]
+
+    def get_theme_id_with_exceptions(self, dic, exceptions):
+        if dic is not None:
+            for theme_id, value in self.id_dic.iteritems():
+                if value == dic and (self.get_name(theme_id) not in exceptions):
+                    return self.dic_id[id(value)]
+
+    def get_sound_id(self, fc=None, cb=None, preview=None):
+        if fc is not None:
+            return self.fc_id[fc]
+        if cb is not None:
+            return self.cb_id[cb]
+        if preview is not None:
+            return self.preview_id[preview]
+
+    def get_fc(self, sound_id):
+        return self.id_fc[sound_id]
+
+    def get_cb(self, sound_id):
+        return self.id_cb[sound_id]
+
+    def get_preview(self, sound_id):
+        return self.id_preview[sound_id]
+
+    def set_fc(self, fc, sound_id):
+        self.id_fc[sound_id] = fc
+        self.fc_id[fc] = sound_id
+        self.sound_ids.add(sound_id)
+
+    def set_cb(self, cb, sound_id):
+        self.id_cb[sound_id] = cb
+        self.cb_id[cb] = sound_id
+        self.sound_ids.add(sound_id)
+
+    def set_preview(self, preview, sound_id):
+        self.id_preview[sound_id] = preview
+        self.preview_id[preview] = sound_id
+        self.sound_ids.add(sound_id)
+
+    def get_path(self, theme_id, sound_id):
+        dic = self.get_dic(theme_id)
+        if sound_id in dic:
+            return dic[sound_id]
+        else:
+            return None
+
+    def _append_theme(self, islocal, top, name, dic, existance):
+        theme_id = self.treemodel.get_string_from_iter(self.liststore.append((name,)))
+
+        self.islocal_id[islocal] = theme_id
+        self.top_id[top] = theme_id
+        self.name_id[name] = theme_id
+        self.dic_id[id(dic)] = theme_id
+        self.existance_id[existance] = theme_id
+
+        self.id_islocal[theme_id] = islocal
+        self.id_top[theme_id] = top
+        self.id_name[theme_id] = name
+        self.id_dic[theme_id] = dic
+        self.id_existance[theme_id] = existance
+
+        return theme_id
+
+    def add_theme(self, name, dic, existance):
+        return self._append_theme(True, LOCAL_SOUND_DIR, name, dic, existance)
+
+    def remove_theme(self, theme_id):
+        #FIXME
+        pass
+
+    def get_dic(self, theme_id):
+        return self.id_dic[theme_id].copy()
+
+    def get_name(self, theme_id):
+        return self.id_name[theme_id]
+
+    def exists(self, theme_id):
+        return self.id_existance[theme_id]
+
+    def is_local(self, theme_id):
+        return self.id_islocal[theme_id]
+
+    def get_top_dir(self, theme_id):
+        return self.id_top[theme_id]
+
+    def set_dic(self, theme_id, dic):
+        olddic = self.id_dic[theme_id]
+        del self.dic_id[id(olddic)]
+
+        self.id_dic[theme_id] = dic
+        self.dic_id[id(dic)] = theme_id
+
+
