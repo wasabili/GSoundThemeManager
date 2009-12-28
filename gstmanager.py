@@ -196,16 +196,11 @@ class GSoundThemeManager(object):
             self.data.get_preview(index).set_sensitive(True)
         else:
             self.data.get_preview(index).set_sensitive(False)
-            
+        
         # custom
-        theme_id = self.data.get_current_theme_id()
         sound_id = self.data.get_sound_id(fc=widget)
-        dic = self.data.get_dic(theme_id)
-        if dic.get(sound_id) == widget.get_filename():
-            return
-        else:
-            dic[sound_id] = widget.get_filename()
-            self.set_as_customized(dic)
+        if dic.get(sound_id) != widget.get_filename():
+            self.set_as_customized(self.get_current_states())
         
     def on_cb_toggled(self, widget, *args):
 
@@ -216,21 +211,10 @@ class GSoundThemeManager(object):
         pr.set_sensitive(bool(widget.get_active() and fc.get_filename()))
 
         # custom
-        theme_id = self.data.get_current_theme_id()
         sound_id = self.data.get_sound_id(cb=widget)
-        dic = self.data.get_dic(theme_id)
         fc_status = self.data.get_fc(sound_id).get_filename()
-        cb_status = widget.get_active()
-
         if fc_status:
-            if cb_status:
-                dic[sound_id] = fc_status
-            else:
-                if sound_id in dic:
-                    del dic[sound_id]
-            self.set_as_customized(dic)
-        else:
-            return
+            self.set_as_customized(self.get_current_states())
 
     def on_btn_preview_clicked(self, widget, *args):
         sound_id = self.data.get_sound_id(preview=widget)
@@ -264,7 +248,7 @@ class GSoundThemeManager(object):
                     return
 
             # --Execute------------------------------
-            result = gstmcore.createtheme(title, self.data.get_dic(theme_id))
+            result = createtheme(title, self.data.get_dic(theme_id))
 
             if not result:
                 dialog = gtk.MessageDialog(type=gtk.MESSAGE_ERROR, buttons=gtk.BUTTONS_OK)
@@ -273,7 +257,7 @@ class GSoundThemeManager(object):
                 dialog.run()
                 dialog.destroy()
 
-        self.gconf.set(GCONF_CURRENT_THEME, title)
+        self.gconf.set(GCONF_CURRENT_THEME, title.lower())
 
     def gtk_main_quit(self, *args):
         if self.gconf.get(GCONF_CURRENT_THEME) == self.data.get_name(self.data.get_current_theme_id()).lower():
@@ -289,6 +273,19 @@ class GSoundThemeManager(object):
                 self['mainwindow'].hide_all()
                 gtk.main_quit()
 
+    def get_current_states(self):
+        sound_ids = self.data.get_sound_ids()
+        base_dic = self.data.get_dic(self.data.get_current_theme_id())
+        for sound_id in sound_ids:
+            cb = self.data.get_cb(sound_id)
+            fc = self.data.get_fc(sound_id)
+            sound = fc.get_filename()
+            if cb.get_active() and sound:
+                base_dic[sound_id] = sound
+            else:
+                if sound_id in base_dic:
+                    del base_dic[sound_id]
+        return base_dic
 
     def set_as_customized(self, dic):
 
