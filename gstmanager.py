@@ -153,6 +153,9 @@ class GSoundThemeManager(object):
     def on_cmb_themes_changed(self, widget, *args): # TODO confirm if add/remove theme action doesnt triggers something wrong
         theme_id = self.data.get_current_theme_id()
 
+        if theme_id is None:
+            return
+
         if self.reloadfcs:
             self._loadfcs(theme_id)
 
@@ -174,16 +177,20 @@ class GSoundThemeManager(object):
         answer = dialog.run()
         dialog.destroy()
         if answer == gtk.RESPONSE_YES:
-            top = self.data.get_top_dir(self.data.get_current_theme_id())            
-            result = removetheme(top)
-            if not result:
-                dialog = gtk.MessageDialog(type=gtk.MESSAGE_ERROR, buttons=gtk.BUTTONS_OK)
-                dialog.set_transient_for(self['mainwindow'])
-                dialog.set_markup('Error while removing the old theme...:'+str(e))
-                dialog.run()
-                dialog.destroy()
+            theme_id = self.data.get_current_theme_id()
+            if self.data.exists(theme_id):
+                result = removetheme(self.data.get_top_dir(theme_id))
+                if not result:
+                    dialog = gtk.MessageDialog(type=gtk.MESSAGE_ERROR, buttons=gtk.BUTTONS_OK)
+                    dialog.set_transient_for(self['mainwindow'])
+                    dialog.set_markup('Error while removing the old theme...:'+str(e))
+                    dialog.run()
+                    dialog.destroy()
             
-            self.data.remove_theme(self.get_current_theme_id())
+            self.reloadfcs = False
+            self.data.remove_theme(theme_id)
+            self.reloadfcs = True
+
             self['cmb_themes'].set_active(0)
 
     def on_fc_file_set(self, widget, *args):

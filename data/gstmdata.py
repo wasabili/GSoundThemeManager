@@ -44,7 +44,11 @@ class GSTMdata(object):
 
 
     def get_current_theme_id(self):
-        return self.treemodel.get_string_from_iter(self.combobox.get_active_iter())
+        active_iter = self.combobox.get_active_iter()
+        if active_iter is None:
+            return None
+        else:
+            return self.treemodel.get_string_from_iter(active_iter)
 
     def get_iter_from_theme_id(self, theme_id):
         return self.treemodel.get_iter_from_string(theme_id)
@@ -121,7 +125,7 @@ class GSTMdata(object):
         return theme_id
 
     def add_theme(self, name, dic, existance):
-        return self._append_theme(True, LOCAL_SOUND_DIR, name, dic, existance)
+        return self._append_theme(True, None, name, dic, existance)
 
     def remove_theme(self, theme_id):
         orig_theme_id = theme_id
@@ -151,7 +155,7 @@ class GSTMdata(object):
             dic = self.id_dic[tmp]
             existance = self.id_existance[tmp]
 
-            themes.append((tmp, is_local, top, name, dic, existance))
+            themes.append((tmp, islocal, top, name, dic, existance))
 
         self.islocal_id.clear()
         self.top_id.clear()
