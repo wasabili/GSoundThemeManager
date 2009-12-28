@@ -42,8 +42,6 @@ class GSTMdata(object):
     def get_sound_ids(self):
         return self.sound_ids.copy()
 
-    def _get_id_fc(self):
-        return self.id_fc
 
     def get_current_theme_id(self):
         return self.treemodel.get_string_from_iter(self.combobox.get_active_iter())

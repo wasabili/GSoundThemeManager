@@ -48,7 +48,7 @@ class GSoundThemeManager(object):
         """Initializer"""
 
         # manage flags
-        self.reloadtheme = True
+        self.reloadfcs = True
 
         # load GUI
         self.builder = gtk.Builder()
@@ -129,8 +129,7 @@ class GSoundThemeManager(object):
             self.data.set_cb(checkbutton, sound_id)
             self.data.set_preview(preview, sound_id)
 
-    def loadtheme(self):
-        theme_id = self.data.get_current_theme_id()
+    def _loadfcs(self, theme_id):
         # cb, fc, previews
         for sound_id in self.data.get_sound_ids():
             path = self.data.get_path(theme_id, sound_id)
@@ -143,17 +142,22 @@ class GSoundThemeManager(object):
                 self.data.get_cb(sound_id).set_active(False)
                 self.data.get_preview(sound_id).set_sensitive(False)
 
+    def loadtheme(self):
+        theme_id = self.data.get_current_theme_id()
+        self._loadfcs(theme_id)
+
         # remove-button
         self['btn_remove_theme'].set_sensitive(self.data.is_local(theme_id))
 
-    def on_cmb_themes_changed(self, widget, *args): # TODO confirm if add/remove theme action doesnt triggers something wrong
-        if not self.reloadtheme:
-            # remove-button
-            theme_id = self.data.get_current_theme_id()
-            self['btn_remove_theme'].set_sensitive(self.data.is_local(theme_id))
-            return
 
-        self.loadtheme()
+    def on_cmb_themes_changed(self, widget, *args): # TODO confirm if add/remove theme action doesnt triggers something wrong
+        theme_id = self.data.get_current_theme_id()
+
+        if self.reloadfcs:
+            self._loadfcs(theme_id)
+
+        # remove-button
+        self['btn_remove_theme'].set_sensitive(self.data.is_local(theme_id))
 
     def on_btn_add_theme_clicked(self, widget, *args):
         count = len(self.customnames)
@@ -186,20 +190,20 @@ class GSoundThemeManager(object):
 
         # share location
         curfol = widget.get_current_folder()
-        for sound_id, fc in self.data._get_id_fc().items():
-            if fc is widget:
-                index = sound_id
-            fc.get_filename or fc.set_current_folder(curfol)
-            
-        # preview widget
-        if widget.get_filename():
-            self.data.get_preview(index).set_sensitive(True)
-        else:
-            self.data.get_preview(index).set_sensitive(False)
-        
-        # custom
+        for sound_id in self.data.get_sound_ids():
+            fc = self.data.get_fc(sound_id)
+            fc.get_filename() or fc.set_current_folder(curfol)
+    
         theme_id = self.data.get_current_theme_id()
         sound_id = self.data.get_sound_id(fc=widget)
+
+        # preview widget
+        if widget.get_filename():
+            self.data.get_preview(sound_id).set_sensitive(True)
+        else:
+            self.data.get_preview(sound_id).set_sensitive(False)
+        
+        # custom
         if self.data.get_path(theme_id, sound_id) != widget.get_filename():
             self.set_as_customized(self.get_current_states())
         
@@ -290,7 +294,7 @@ class GSoundThemeManager(object):
 
     def set_as_customized(self, dic):
 
-        self.reloadtheme = False
+        self.reloadfcs = False
 
         theme_id = self.data.get_current_theme_id()
 
@@ -309,7 +313,7 @@ class GSoundThemeManager(object):
             else:
                 self['cmb_themes'].set_active_iter(self.data.get_iter_from_theme_id(custom_theme_id)) # TODO confirm asdflhasdga...
 
-        self.reloadtheme = True
+        self.reloadfcs = True
 
     def __getitem__(self, key):
         return self.builder.get_object(key)
