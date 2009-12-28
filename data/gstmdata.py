@@ -6,6 +6,8 @@ from gstmcore import findthemes
 
 class GSTMdata(object):
 
+    theme_ids = []
+
     id_islocal = {}
     id_top = {}
     id_name = {}
@@ -99,13 +101,12 @@ class GSTMdata(object):
 
     def get_path(self, theme_id, sound_id):
         dic = self.get_dic(theme_id)
-        if sound_id in dic:
-            return dic[sound_id]
-        else:
-            return None
+        return dic.get(sound_id)
 
     def _append_theme(self, islocal, top, name, dic, existance):
         theme_id = self.treemodel.get_string_from_iter(self.liststore.append((name,)))
+
+        self.theme_ids.append(theme_id)
 
         self.islocal_id[islocal] = theme_id
         self.top_id[top] = theme_id
@@ -125,8 +126,60 @@ class GSTMdata(object):
         return self._append_theme(True, LOCAL_SOUND_DIR, name, dic, existance)
 
     def remove_theme(self, theme_id):
-        #FIXME
-        pass
+        orig_theme_id = theme_id
+
+        self.liststore.remove(self.treemodel.get_iter_from_string(orig_theme_id))
+
+        # theme_id, islocal, top, name, dic, existance
+        themes = []
+        tmp = None
+        prev = None
+        flag = False
+        for theme_id in self.theme_ids:
+            if theme_id == orig_theme_id:
+                flag = True
+                prev = theme_id
+ 
+            if flag:
+                tmp = prev
+                prev = theme_id
+            else:
+                tmp = theme_id
+
+
+            islocal = self.id_islocal[tmp]
+            top = self.id_top[tmp]
+            name = self.id_name[tmp]
+            dic = self.id_dic[tmp]
+            existance = self.id_existance[tmp]
+
+            themes.append((tmp, is_local, top, name, dic, existance))
+
+        self.islocal_id.clear()
+        self.top_id.clear()
+        self.name_id.clear()
+        self.dic_id.clear()
+        self.existance_id.clear()
+
+        self.id_islocal.clear()
+        self.id_top.clear()
+        self.id_name.clear()
+        self.id_dic.clear()
+        self.id_existance.clear()
+
+        self.theme_ids.remove(orig_theme_id)
+        for theme_id, islocal, top, name, dic, existance in themes:    
+            self.islocal_id[islocal] = theme_id
+            self.top_id[top] = theme_id
+            self.name_id[name] = theme_id
+            self.dic_id[id(dic)] = theme_id
+            self.existance_id[existance] = theme_id
+
+            self.id_islocal[theme_id] = islocal
+            self.id_top[theme_id] = top
+            self.id_name[theme_id] = name
+            self.id_dic[theme_id] = dic
+            self.id_existance[theme_id] = existance
 
     def get_dic(self, theme_id):
         return self.id_dic[theme_id].copy()
