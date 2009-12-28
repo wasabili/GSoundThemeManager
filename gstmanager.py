@@ -134,7 +134,7 @@ class GSoundThemeManager(object):
         for sound_id in self.data.get_sound_ids():
             path = self.data.get_path(theme_id, sound_id)
             if path:
-                self.data.get_fc(sound_id).set_filename(path)
+                self.data.get_fc(sound_id).get_filename() != path and self.data.get_fc(sound_id).set_filename(path)
                 self.data.get_cb(sound_id).set_active(True)
                 self.data.get_preview(sound_id).set_sensitive(True)
             else:
@@ -163,10 +163,13 @@ class GSoundThemeManager(object):
         self['btn_remove_theme'].set_sensitive(self.data.is_local(theme_id))
 
     def on_btn_add_theme_clicked(self, widget, *args):
-        count = len(self.customnames)
-        title = 'Untitled%d' % count
+        title = 'Untitled%d' % len(self.customnames)
+
+        # add a theme
         self.customnames.append(title)
         theme_id = self.data.add_theme(title, {}, False)
+
+        # select the theme added now
         self['cmb_themes'].set_active_iter(self.data.get_iter_from_theme_id(theme_id))
 
     def on_btn_remove_theme_clicked(self, widget, *args):
@@ -218,13 +221,14 @@ class GSoundThemeManager(object):
 
         sound_id = self.data.get_sound_id(cb=widget)
         fc = self.data.get_fc(sound_id)
-        fc.set_sensitive(widget.get_active())
         pr = self.data.get_preview(sound_id)
+
+        # fc & preview
+        fc.set_sensitive(widget.get_active())
         pr.set_sensitive(bool(widget.get_active() and fc.get_filename()))
 
         # custom
-        sound_id = self.data.get_sound_id(cb=widget)
-        fc_status = self.data.get_fc(sound_id).get_filename()
+        fc_status = fc.get_filename()
         if fc_status:
             self.set_as_customized(self.get_current_states())
 
