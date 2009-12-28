@@ -75,7 +75,7 @@ OutputProfile=stereo
 """
 
 
-def createtheme(name, target, sounds):
+def createtheme(name, sounds):
     global indextmpl
 
     start = os.getcwd()
@@ -98,7 +98,7 @@ def createtheme(name, target, sounds):
 
         os.chdir('../')
 
-        for spec, sound in sounds:
+        for spec, sound in sounds.items():
 
             print sound, 'to', spec
 

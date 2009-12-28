@@ -161,7 +161,7 @@ class GSoundThemeManager(object):
 
     def on_btn_add_theme_clicked(self, widget, *args):
         count = len(self.customnames)
-        title = 'Untitled Theme %d' % count
+        title = 'Untitled%d' % count
         self.customnames.append(title)
         theme_id = self.data.add_theme(title, {}, False)
         self['cmb_themes'].set_active_iter(self.data.get_iter_from_theme_id(theme_id))
@@ -175,7 +175,7 @@ class GSoundThemeManager(object):
         dialog.destroy()
         if answer == gtk.RESPONSE_YES:
             top = self.data.get_top_dir(self.data.get_current_theme_id())            
-            result = gstmcore.removetheme(top)
+            result = removetheme(top)
             if not result:
                 dialog = gtk.MessageDialog(type=gtk.MESSAGE_ERROR, buttons=gtk.BUTTONS_OK)
                 dialog.set_transient_for(self['mainwindow'])
@@ -243,7 +243,7 @@ class GSoundThemeManager(object):
             # --Overwrite?--------------------------
             dist = os.path.join(LOCAL_SOUND_DIR, title)
             if os.path.exists(dist):
-                result = gstmcore.removetheme(dist)
+                result = removetheme(dist)
                 if not result:
                     dialog = gtk.MessageDialog(type=gtk.MESSAGE_ERROR, buttons=gtk.BUTTONS_OK)
                     dialog.set_transient_for(self['mainwindow'])
@@ -311,6 +311,7 @@ class GSoundThemeManager(object):
                 custom = self.data.add_theme(self.customnames[0], dic, False)
                 self['cmb_themes'].set_active_iter(self.data.get_iter_from_theme_id(custom)) # TODO confirm asdflhasdga...
             else:
+                self.data.set_dic(custom_theme_id, dic)
                 self['cmb_themes'].set_active_iter(self.data.get_iter_from_theme_id(custom_theme_id)) # TODO confirm asdflhasdga...
 
         self.reloadfcs = True
