@@ -198,8 +198,9 @@ class GSoundThemeManager(object):
             self.data.get_preview(index).set_sensitive(False)
         
         # custom
+        theme_id = self.data.get_current_theme_id()
         sound_id = self.data.get_sound_id(fc=widget)
-        if dic.get(sound_id) != widget.get_filename():
+        if self.data.get_path(theme_id, sound_id) != widget.get_filename():
             self.set_as_customized(self.get_current_states())
         
     def on_cb_toggled(self, widget, *args):
