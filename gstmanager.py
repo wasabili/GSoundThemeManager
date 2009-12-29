@@ -79,8 +79,9 @@ class GSoundThemeManager(object):
         feedback = self.gconf.get_bool(GCONF_FEEDBACK)
         curtheme = self.gconf.get(GCONF_CURRENT_THEME)
         self['chk_winbtn_sounds'].set_active(feedback)
-        self['cmb_themes'].set_active_iter(self.data.get_iter_from_theme_id(self.data.get_theme_id(name=curtheme)))
-        self.loadtheme()
+        if curtheme is not None:
+            self['cmb_themes'].set_active_iter(self.data.get_iter_from_theme_id(self.data.get_theme_id(name=curtheme)))
+            self.loadtheme()
 
         # start
         self['mainwindow'].show_all()
@@ -314,6 +315,33 @@ class GSoundThemeManager(object):
             self.data.set_name(theme_id, newname)
 
 
+    def on_btn_install_clicked(self, widget, *args):
+        dialog = gtk.FileChooserDialog(title=None, parent=None, action=gtk.FILE_CHOOSER_ACTION_OPEN, buttons=(gtk.STOCK_CANCEL, gtk.RESPONSE_CANCEL, gtk.STOCK_OPEN, gtk.RESPONSE_OK), backend=None)
+        dialog.set_transient_for(self['mainwindow'])
+        dialog.set_current_folder(DEFAULT_DIR)
+        result = dialog.run()
+        dialog.destroy()
+
+        if result == gtk.RESPONSE_OK:
+            theme = dialog.get_filename()
+            result = installtheme(theme)
+            if result is None:
+                dialog = gtk.MessageDialog(type=gtk.MESSAGE_WARNING, buttons=gtk.BUTTONS_OK_CANCEL)
+                dialog.set_transient_for(self['mainwindow'])
+                dialog.set_markup('Incorrect theme file!')
+                result = dialog.run()
+                dialog.destroy()
+                return
+            else:
+                dialog = gtk.MessageDialog(type=gtk.MESSAGE_INFORMATION, buttons=gtk.BUTTONS_OK_CANCEL)
+                dialog.set_transient_for(self['mainwindow'])
+                dialog.set_markup('Imported successfully!')
+                result = dialog.run()
+                dialog.destroy()
+                
+                theme_id = self.data._append_theme(*result, True)
+                self['cmb_themes'].set_active_iter(self.data.get_iter_from_theme_id(theme_id))           
+
     def gtk_main_quit(self, *args):
         if self.gconf.get(GCONF_CURRENT_THEME) == self.data.get_name(self.data.get_current_theme_id()).lower():
             self['mainwindow'].hide_all()
@@ -346,27 +374,23 @@ class GSoundThemeManager(object):
 
         self.reloadfcs = False
 
-        print dic
-
         theme_id = self.data.get_current_theme_id()
 
         customized = bool(self.data.get_name(theme_id) in self.customnames)
         existing = self.data.get_theme_id_with_exceptions(dic, self.customnames)
 
-        print existing
-
         if existing:
-            self['cmb_themes'].set_active_iter(self.data.get_iter_from_theme_id(existing)) # TODO confirm asdflhasdga...
+            self['cmb_themes'].set_active_iter(self.data.get_iter_from_theme_id(existing))
         elif customized:
             self.data.set_dic(theme_id, dic)
         else:
             custom_theme_id = self.data.get_theme_id(name=self.customnames[0])
             if custom_theme_id is None:
                 custom = self.data.add_theme(self.customnames[0], dic, False)
-                self['cmb_themes'].set_active_iter(self.data.get_iter_from_theme_id(custom)) # TODO confirm asdflhasdga...
+                self['cmb_themes'].set_active_iter(self.data.get_iter_from_theme_id(custom))
             else:
                 self.data.set_dic(custom_theme_id, dic)
-                self['cmb_themes'].set_active_iter(self.data.get_iter_from_theme_id(custom_theme_id)) # TODO confirm asdflhasdga...
+                self['cmb_themes'].set_active_iter(self.data.get_iter_from_theme_id(custom_theme_id))
 
         self.reloadfcs = True
 

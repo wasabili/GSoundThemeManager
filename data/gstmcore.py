@@ -145,3 +145,34 @@ def overwriteindextheme(top, name):
     finally:
         os.chdir(start)
 
+
+def installtheme(filepath):
+    import tarfile
+
+    if tarfile.is_tarfile(filepath):
+        theme = tarfile.open(filepath, 'r')
+        names = theme.getnames()
+        # find a file: 'index.theme'
+        for name in names:
+            if name.endswith('index.theme'):
+                if name.startswith('index.theme'):
+                    return None
+                else:
+                    break
+        else:
+            return None
+        
+        top = LOCAL_SOUND_DIR + name[:12] # remove '/index.theme'
+
+        # extract
+        for name in names:
+            theme.extract(name, LOCAL_SOUND_DIR+'/'+name)
+
+        result = salvagetheme(top)
+
+        if result is None:
+            return None
+        else:
+            return True, top, result[0], result[1]
+    else:
+        return None
