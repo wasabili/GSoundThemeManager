@@ -119,5 +119,29 @@ def createtheme(name, sounds):
     finally:
         os.chdir(start)
 
+def overwriteindextheme(top, name):
+    global indextmpl
 
+    start = os.getcwd()
+    os.chdir(os.path.abspath(top))
+
+    try:
+        os.remove('index.theme')
+
+        spec = indextmpl.replace("name", name)
+
+        index = open('index.theme', 'w')
+        index.write(spec)
+        index.close()
+
+    except OSError, e:
+        print >> sys.stderr, 'It\'s not permitted to write to the target.'
+        return False
+    except IOError, e:
+        print >> sys.stderr, 'An error occurred while processing: ', e.args[1]
+        return False
+    else:
+        return True
+    finally:
+        os.chdir(start)
 

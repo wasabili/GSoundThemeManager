@@ -182,7 +182,7 @@ class GSoundThemeManager(object):
         if answer == gtk.RESPONSE_YES:
             theme_id = self.data.get_current_theme_id()
             if self.data.exists(theme_id):
-                result = removetheme(self.data.get_top_dir(theme_id))
+                result = removetheme(self.data.get_top(theme_id))
                 if not result:
                     dialog = gtk.MessageDialog(type=gtk.MESSAGE_ERROR, buttons=gtk.BUTTONS_OK)
                     dialog.set_transient_for(self['mainwindow'])
@@ -251,29 +251,68 @@ class GSoundThemeManager(object):
 
         if title in self.customnames or not self.data.exists(theme_id):
 
-            # --Overwrite?--------------------------
-            dist = os.path.join(LOCAL_SOUND_DIR, title)
-            if os.path.exists(dist):
-                result = removetheme(dist)
-                if not result:
-                    dialog = gtk.MessageDialog(type=gtk.MESSAGE_ERROR, buttons=gtk.BUTTONS_OK)
-                    dialog.set_transient_for(self['mainwindow'])
-                    dialog.set_markup('Error while applying new theme...')
-                    dialog.run()
-                    dialog.destroy()
-                    return
-
-            # --Execute------------------------------
-            result = createtheme(title, self.data.get_dic(theme_id))
-
+            result = self.savetheme(theme_id, title)
             if not result:
-                dialog = gtk.MessageDialog(type=gtk.MESSAGE_ERROR, buttons=gtk.BUTTONS_OK)
-                dialog.set_transient_for(self['mainwindow'])
-                dialog.set_markup(output or 'Failed to apply new theme')
-                dialog.run()
-                dialog.destroy()
+                return
 
         self.gconf.set(GCONF_CURRENT_THEME, title.lower())
+
+    def on_btn_save_as_clicked(self, widget, *args):
+
+        def getText():
+            def responseToDialog(entry, dialog, response):
+                dialog.response(response)
+
+            dialog = gtk.MessageDialog(None, gtk.DIALOG_MODAL | gtk.DIALOG_DESTROY_WITH_PARENT, gtk.MESSAGE_QUESTION, gtk.BUTTONS_OK, None)
+            dialog.set_transient_for(self['mainwindow'])
+            dialog.set_markup('Please enter a <b>new name</b>:')
+            dialog.format_secondary_markup("This will be used for a <i>new theme</i> you have created now")
+
+            #create the text input field
+            entry = gtk.Entry()
+            entry.connect("activate", responseToDialog, dialog, gtk.RESPONSE_OK)
+
+            #create a horizontal box to pack the entry and a label
+            hbox = gtk.HBox()
+            hbox.pack_start(gtk.Label("Name:"), False, 6, 6)
+            hbox.pack_end(entry)
+
+            #add it and show it
+            dialog.vbox.pack_end(hbox, True, True, 0)
+            dialog.show_all()
+
+            #go go go
+            dialog.run()
+            text = entry.get_text()
+            dialog.destroy()
+            return text
+
+        newname = getText()
+        if self.data.get_theme_id(name=newname):
+            dialog = gtk.MessageDialog(type=gtk.MESSAGE_WARNING, buttons=gtk.BUTTONS_OK)
+            dialog.set_transient_for(self['mainwindow'])
+            dialog.set_markup('The same theme already exists.')
+            dialog.run()
+            dialog.destroy()
+            return
+
+        import re
+        if not re.match('^[a-zA-Z0-9_]+$', newname):
+            dialog = gtk.MessageDialog(type=gtk.MESSAGE_WARNING, buttons=gtk.BUTTONS_OK)
+            dialog.set_transient_for(self['mainwindow'])
+            dialog.set_markup('You can use only latin charactars, numbers and underbar.')
+            dialog.run()
+            dialog.destroy()
+            return
+
+        if newname:
+            theme_id = self.data.get_current_theme_id()
+            if self.data.exists(theme_id):
+                overwriteindextheme(self.data.get_top(theme_id), newname)
+            else:
+                self.savetheme(theme_id, newname)
+            self.data.set_name(theme_id, newname)
+
 
     def gtk_main_quit(self, *args):
         if self.gconf.get(GCONF_CURRENT_THEME) == self.data.get_name(self.data.get_current_theme_id()).lower():
@@ -307,10 +346,14 @@ class GSoundThemeManager(object):
 
         self.reloadfcs = False
 
+        print dic
+
         theme_id = self.data.get_current_theme_id()
 
         customized = bool(self.data.get_name(theme_id) in self.customnames)
         existing = self.data.get_theme_id_with_exceptions(dic, self.customnames)
+
+        print existing
 
         if existing:
             self['cmb_themes'].set_active_iter(self.data.get_iter_from_theme_id(existing)) # TODO confirm asdflhasdga...
@@ -326,6 +369,32 @@ class GSoundThemeManager(object):
                 self['cmb_themes'].set_active_iter(self.data.get_iter_from_theme_id(custom_theme_id)) # TODO confirm asdflhasdga...
 
         self.reloadfcs = True
+
+    def savetheme(self, theme_id, title):
+        # --Overwrite?--------------------------
+        dist = os.path.join(LOCAL_SOUND_DIR, title)
+        if os.path.exists(dist):
+            result = removetheme(dist)
+            if not result:
+                dialog = gtk.MessageDialog(type=gtk.MESSAGE_ERROR, buttons=gtk.BUTTONS_OK)
+                dialog.set_transient_for(self['mainwindow'])
+                dialog.set_markup('Error while applying new theme...')
+                dialog.run()
+                dialog.destroy()
+                return False
+
+        # --Execute------------------------------
+        result = createtheme(title, self.data.get_dic(theme_id))
+
+        if not result:
+            dialog = gtk.MessageDialog(type=gtk.MESSAGE_ERROR, buttons=gtk.BUTTONS_OK)
+            dialog.set_transient_for(self['mainwindow'])
+            dialog.set_markup(output or 'Failed to apply new theme')
+            dialog.run()
+            dialog.destroy()
+            return False
+
+        return True
 
     def __getitem__(self, key):
         return self.builder.get_object(key)

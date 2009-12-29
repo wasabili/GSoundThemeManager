@@ -42,6 +42,9 @@ class GSTMdata(object):
     def get_sound_ids(self):
         return self.sound_ids.copy()
 
+    def get_theme_ids(self):
+        return self.theme_ids.copy()
+
 
     def get_current_theme_id(self):
         active_iter = self.combobox.get_active_iter()
@@ -66,7 +69,7 @@ class GSTMdata(object):
     def get_theme_id_with_exceptions(self, dic, exceptions):
         if dic is not None:
             for theme_id, value in self.id_dic.iteritems():
-                if value == dic and (self.get_name(theme_id) not in exceptions):
+                if value == dic and (self.get_name(theme_id).lower() not in [x.lower() for x in exceptions]):
                     return self.dic_id[id(value)]
 
     def get_sound_id(self, fc=None, cb=None, preview=None):
@@ -195,8 +198,18 @@ class GSTMdata(object):
     def is_local(self, theme_id):
         return self.id_islocal[theme_id]
 
-    def get_top_dir(self, theme_id):
+    def get_top(self, theme_id):
         return self.id_top[theme_id]
+
+    def set_name(self, theme_id, name):
+        oldname = self.id_name[theme_id]
+        del self.name_id[oldname]
+
+        self.id_name[theme_id] = name
+        self.name_id[name] = theme_id
+
+        theme_iter = self.get_iter_from_theme_id(theme_id)
+        self.liststore.set(theme_iter, 0, name)
 
     def set_dic(self, theme_id, dic):
         olddic = self.id_dic[theme_id]
