@@ -108,7 +108,7 @@ class GSTMdata(object):
         dic = self.get_dic(theme_id)
         return dic.get(sound_id)
 
-    def _append_theme(self, islocal, top, name, dic, existance):
+    def _append_theme(self, islocal, top, name, dic, existance=True):
         theme_id = self.treemodel.get_string_from_iter(self.liststore.append((name,)))
 
         self.theme_ids.append(theme_id)

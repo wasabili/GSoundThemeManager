@@ -320,26 +320,26 @@ class GSoundThemeManager(object):
         dialog.set_transient_for(self['mainwindow'])
         dialog.set_current_folder(DEFAULT_DIR)
         result = dialog.run()
+        theme = dialog.get_filename()
         dialog.destroy()
 
         if result == gtk.RESPONSE_OK:
-            theme = dialog.get_filename()
             result = installtheme(theme)
             if result is None:
-                dialog = gtk.MessageDialog(type=gtk.MESSAGE_WARNING, buttons=gtk.BUTTONS_OK_CANCEL)
+                dialog = gtk.MessageDialog(type=gtk.MESSAGE_WARNING, buttons=gtk.BUTTONS_OK)
                 dialog.set_transient_for(self['mainwindow'])
-                dialog.set_markup('Incorrect theme file!')
+                dialog.set_markup('Incorrect file format!')
                 result = dialog.run()
                 dialog.destroy()
                 return
             else:
-                dialog = gtk.MessageDialog(type=gtk.MESSAGE_INFORMATION, buttons=gtk.BUTTONS_OK_CANCEL)
+                dialog = gtk.MessageDialog(type=gtk.MESSAGE_INFORMATION, buttons=gtk.BUTTONS_OK)
                 dialog.set_transient_for(self['mainwindow'])
                 dialog.set_markup('Imported successfully!')
                 result = dialog.run()
                 dialog.destroy()
                 
-                theme_id = self.data._append_theme(*result, True)
+                theme_id = self.data._append_theme(*result)
                 self['cmb_themes'].set_active_iter(self.data.get_iter_from_theme_id(theme_id))           
 
     def gtk_main_quit(self, *args):
