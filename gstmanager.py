@@ -49,6 +49,10 @@ class GSoundThemeManager(object):
         # manage flags
         self.reloadfcs = True
 
+        # Init local dir
+        if not os.path.exists(LOCAL_SOUND_DIR):
+            os.mkdir(LOCAL_SOUND_DIR)
+
         # load GUI
         self.builder = gtk.Builder()
         self.builder.add_from_file(UI_PATH)
