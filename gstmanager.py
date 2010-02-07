@@ -30,12 +30,11 @@ import os.path
 import pygame
 
 # MY DATA
+from lib.gstmconsts import *
+from lib.gstmcore import *
+from lib.gconfhandler import *
+from lib.gstmdata import *
 DATA_DIR = os.path.join(os.getcwd(), 'data')
-sys.path.insert(0, DATA_DIR)
-from gstmconsts import *
-from gstmcore import *
-from gconfhandler import *
-from gstmdata import *
 UI_PATH = os.path.join(DATA_DIR, 'gstmanager.ui')
 
 
@@ -308,7 +307,7 @@ class GSoundThemeManager(object):
 
         if newname:
             theme_id = self.data.get_current_theme_id()
-            if self.data.exists(theme_id):
+            if self.data.exists(theme_id) and self.data.is_local(theme_id):
                 overwriteindextheme(self.data.get_top(theme_id), newname)
             else:
                 self.savetheme(theme_id, newname)
