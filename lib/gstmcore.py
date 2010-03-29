@@ -5,6 +5,14 @@ import sys
 import os
 import os.path
 
+try:
+    import pygtk
+    pygtk.require("2.0")
+except:
+    pass
+import gtk
+
+
 from gstmconsts import *
 
 def salvagetheme(location):
@@ -18,24 +26,30 @@ def salvagetheme(location):
     
     # load index.theme
     with open(index, 'r') as f:
-        from ConfigParser import ConfigParser
-        config = ConfigParser()
-        config.readfp(f)
-        name = config.get('Sound Theme', 'Name')
-        dirs = config.get('Sound Theme', 'Directories').split(' ')
-        for dir in dirs:
-            profile = config.get(dir, 'OutputProfile')
-            if profile == 'stereo':
-                stereo = dir
-                break
-            else:
-                return None
-        for root, dirs, files in os.walk(location+'/'+stereo):
-            for file in files:
-                if file.split('.')[-1] in ('ogg', 'wav', 'oga', 'sound'):
-                    id = ''.join(file.split('.')[:-1])
-                    dic[id] = root+'/'+file
-                
+        try:
+            from ConfigParser import ConfigParser
+            config = ConfigParser()
+            config.readfp(f)
+            name = config.get('Sound Theme', 'Name')
+            dirs = config.get('Sound Theme', 'Directories').split(' ')
+            for dir in dirs:
+                profile = config.get(dir, 'OutputProfile')
+                if profile == 'stereo':
+                    stereo = dir
+                    break
+                else:
+                    return None
+            for root, dirs, files in os.walk(location+'/'+stereo):
+                for file in files:
+                    if file.split('.')[-1] in ('ogg', 'wav', 'oga', 'sound'):
+                        id = ''.join(file.split('.')[:-1])
+                        dic[id] = root+'/'+file
+        except Exception, e:
+            dialog = gtk.MessageDialog(type=gtk.MESSAGE_ERROR, buttons=gtk.BUTTONS_OK)
+            dialog.set_markup('An invalid sound theme is installed. Exit now.')
+            dialog.run()
+            dialog.destroy()
+            exit(1)
     return name, dic
         
 def findthemes():
