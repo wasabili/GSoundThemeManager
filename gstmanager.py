@@ -82,7 +82,7 @@ class GSoundThemeManager(object):
         feedback = self.gconf.get_bool(GCONF_FEEDBACK)
         curtheme = self.gconf.get(GCONF_CURRENT_THEME)
         self['chk_winbtn_sounds'].set_active(feedback)
-        if curtheme is not None:
+        if (curtheme is not None) and (curtheme != ""):
             self['cmb_themes'].set_active_iter(self.data.get_iter_from_theme_id(self.data.get_theme_id(name=curtheme)))
             self.loadtheme()
 

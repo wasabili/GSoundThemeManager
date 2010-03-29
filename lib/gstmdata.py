@@ -190,6 +190,8 @@ class GSTMdata(object):
         return self.id_dic[theme_id].copy()
 
     def get_name(self, theme_id):
+        if theme_id is None:
+            return ""
         return self.id_name[theme_id]
 
     def exists(self, theme_id):
