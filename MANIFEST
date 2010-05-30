@@ -1,7 +1,0 @@
-README
-setup.py
-src/lib/__init__.py
-src/lib/gconfhandler.py
-src/lib/gstmconsts.py
-src/lib/gstmcore.py
-src/lib/gstmdata.py
