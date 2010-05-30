@@ -1,0 +1,6 @@
+#!/usr/bin/env python
+
+from gstmanager import GSoundThemeManager
+
+app = GSoundThemeManager()
+app.main()
