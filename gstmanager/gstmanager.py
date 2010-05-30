@@ -48,7 +48,7 @@ class GSoundThemeManager(object):
 
 
     def create_db(self):
-        self.db = GSTMdata(self['ls_themes'], self['cmb_themes'])
+        self.db = GSTMdata(self['ls_themes'], self['cmb_themes']) # Installed themes will be salvaged automatically
 
 
 
