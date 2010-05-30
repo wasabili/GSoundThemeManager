@@ -2,7 +2,7 @@ import os
 from distutils.core import setup
 
 setup(name='gstmanager',
-      version='1.1.0b1',
+      version='1.1.0',
       description='Customize you desktop sound theme',
       author='Yuichi Nishiwaki',
       author_email='ffiannkks@gmail.com',
