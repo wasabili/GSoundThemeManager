@@ -75,7 +75,8 @@ class GSoundThemeManager(object):
         self['chk_winbtn_sounds'].set_active(feedback)
 
         # Current Sound Theme
-        curtheme in (None, "") or self.select_cmb(self.db.get_theme_id(name=curtheme))
+        theme_id = self.db.get_theme_id(name=curtheme)
+        theme_id and self.select_cmb(theme_id)
 
 
 
