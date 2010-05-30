@@ -17,7 +17,7 @@ DATA_DIR = os.path.join(os.getcwd(), 'data')
 UI_PATH = os.path.join(DATA_DIR, 'gstmanager.ui')
 
 
-# TODO: a more beautiful alternative flag system against reloadfcs
+
 
 
 class GSoundThemeManager(object):
@@ -26,18 +26,16 @@ class GSoundThemeManager(object):
     def __init__(self):
         os.path.exists(LOCAL_SOUND_DIR) or os.mkdir(LOCAL_SOUND_DIR)    # Create a directory
 
-        self.reloadfcs = True
+        self.event_guard = False
 
         self.init_gui()
 
-        self.db = GSTMdata(self['ls_themes'], self['cmb_themes'])
+        self.create_db()
 
         self.create_gui()
 
         self.load_gconf()
 
-
-        # start
         self['mainwindow'].show_all()
 
 
@@ -46,6 +44,11 @@ class GSoundThemeManager(object):
         self.builder = gtk.Builder()
         self.builder.add_from_file(UI_PATH)
         self.auto_connects()
+
+
+
+    def create_db(self):
+        self.db = GSTMdata(self['ls_themes'], self['cmb_themes'])
 
 
 
@@ -71,9 +74,9 @@ class GSoundThemeManager(object):
         # Feedback of Windows and Buttons
         self['chk_winbtn_sounds'].set_active(feedback)
 
-
         # Current Sound Theme
         curtheme in (None, "") or self.select_cmb(self.db.get_theme_id(name=curtheme))
+
 
 
 
@@ -144,14 +147,19 @@ class GSoundThemeManager(object):
 
 
 
-    def on_cmb_themes_changed(self, widget, *args): # TODO confirm if add/remove theme action doesnt triggers something wrong
-        if self.reloadfcs: self.do_with_cmb_safe(self.reload_soundchoosers)
+
+
+
+
+
+
+    def on_cmb_themes_changed(self, widget, *args):
+        if self.event_guard:
+            self.do_with_cmb_safe(self.reload_soundchoosers)
 
         theme_id = self.db.get_current_theme_id()
-
-        if theme_id is None: return
-
-        self['btn_remove_theme'].set_sensitive(self.db.is_local(theme_id))
+        if theme_id not is None:
+            self['btn_remove_theme'].set_sensitive(self.db.is_local(theme_id))
 
 
 
@@ -162,7 +170,7 @@ class GSoundThemeManager(object):
 
 
 
-    def on_btn_remove_theme_clicked(self, widget, *args): # TODO error happens?
+    def on_btn_remove_theme_clicked(self, widget, *args):
         dialog = gtk.MessageDialog(type=gtk.MESSAGE_WARNING, buttons=gtk.BUTTONS_YES_NO)
         dialog.set_transient_for(self['mainwindow'])
         dialog.set_markup('You can not be undone removing a theme.\nContinue?')
@@ -188,7 +196,7 @@ class GSoundThemeManager(object):
 
 
     def on_fc_file_set(self, widget, *args):
-        if not self.reloadfcs: return
+        if self.event_guard: return
 
         curfol = widget.get_current_folder()
         for sound_id in self.db.get_sound_ids():
@@ -211,7 +219,7 @@ class GSoundThemeManager(object):
 
 
     def on_cb_toggled(self, widget, *args):
-        if not self.reloadfcs: return
+        if self.event_guard: return
 
         sound_id = self.db.get_sound_id(cb=widget)
         fc = self.db.get_fc(sound_id)
@@ -417,9 +425,9 @@ class GSoundThemeManager(object):
 
 
     def do_with_cmb_safe(self, func, *args):
-        self.reloadfcs = False
+        self.event_guard = True
         func(*args)
-        self.reloadfcs = True
+        self.event_guard = False
 
 
 
