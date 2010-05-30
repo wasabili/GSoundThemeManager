@@ -1,1 +1,3 @@
+include INSTALL
 recursive-include gstmanager/data *.ui
+recursive-include data *

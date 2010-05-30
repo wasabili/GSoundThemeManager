@@ -10,4 +10,5 @@ setup(name='gstmanager',
       scripts=['scripts/gsoundthememanager'],
       packages=['gstmanager', 'gstmanager.lib'],
       package_data={'gstmanager':['data/gstmanager.ui']},
+      data_files=[('share/applications', ['data/gstmanager.desktop'])]
       )

@@ -1,0 +1,13 @@
+#!/usr/bin/env xdg-open
+
+[Desktop Entry]
+Encoding=UTF-8
+Name=Sound Theme Manager
+Version=1.0.0
+Comment=Manage your desktop sounds
+GenericName=Sound Theme Manager
+Terminal=false
+Icon=gnome-volume-control
+Type=Application
+Exec=gsoundthememanager
+Categories=GTK;GNOME;Settings;X-GNOME-PersonalSettings;
