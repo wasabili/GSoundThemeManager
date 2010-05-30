@@ -1,35 +1,14 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
+
+
 import sys
 import os
-try:
-    import pygtk
-    pygtk.require("2.0")
-except:
-    pass
-try:
-    import gtk
-except:
-    print >> sys.stderr, "Error: PyGTK not installed"
-    sys.exit(1)
-
-if gtk.pygtk_version < (2,12,0):
-    errtitle = "Error"
-    errmsg = "PyGTK 2.12.0 or later required"
-    if gtk.pygtk_version < (2,4,0):
-        print >> sys.stderr, errtitle + ": " + errmsg
-    else:
-        errdlg = gtk.MessageDialog(type=gtk.MESSAGE_ERROR, buttons = gtk.BUTTONS_OK)
-        errdlg.set_title(errtitle)
-        errdlg.set_markup(errmsg)
-        errdlg.run()
-    sys.exit(1)
-
 import os.path
-import pygame
-
-# MY DATA
+from multiprocessing import Process
+import pygtk
+import gtk
 from lib.gstmconsts import *
 from lib.gstmcore import *
 from lib.gconfhandler import *
@@ -38,33 +17,39 @@ DATA_DIR = os.path.join(os.getcwd(), 'data')
 UI_PATH = os.path.join(DATA_DIR, 'gstmanager.ui')
 
 
+# TODO: a more beautiful alternative flag system against reloadfcs
+
+
 class GSoundThemeManager(object):
 
-    # The first element must be 'Customized'
-    customnames = ['Customized']
 
     def __init__(self):
-        """Initializer"""
+        os.path.exists(LOCAL_SOUND_DIR) or os.mkdir(LOCAL_SOUND_DIR)    # Create a directory
 
-        # manage flags
         self.reloadfcs = True
 
-        # Init local dir
-        if not os.path.exists(LOCAL_SOUND_DIR):
-            os.mkdir(LOCAL_SOUND_DIR)
+        self.init_gui()
 
-        # load GUI
+        self.db = GSTMdata(self['ls_themes'], self['cmb_themes'])
+
+        self.create_gui()
+
+        self.load_gconf()
+
+
+        # start
+        self['mainwindow'].show_all()
+
+
+
+    def init_gui(self):
         self.builder = gtk.Builder()
         self.builder.add_from_file(UI_PATH)
         self.auto_connects()
 
-        # DATA
-        self.data = GSTMdata(self['ls_themes'], self['cmb_themes'])
-        self.gconf = GConfHandler()
-        pygame.mixer.pre_init(44100, -16, 2, 1024*3)
-        pygame.init()
 
-        # filters
+
+    def create_gui(self):
         self.oggfilter = gtk.FileFilter()
         self.oggfilter.set_name('Ogg/WAV files')
         self.oggfilter.add_pattern('*.oga')
@@ -73,25 +58,26 @@ class GSoundThemeManager(object):
         self.allfilter = gtk.FileFilter()
         self.allfilter.set_name('All files')
         self.allfilter.add_pattern('*')
-
-        # setup GUI
         self.addsoundchooser(self['main_table'], MAIN_EVENT_SOUNDS)
         self.addsoundchooser(self['extra_table'], EXTRA_EVENT_SOUNDS)
 
-        # load current status
-        feedback = self.gconf.get_bool(GCONF_FEEDBACK)
-        curtheme = self.gconf.get(GCONF_CURRENT_THEME)
-        self['chk_winbtn_sounds'].set_active(feedback)
-        if (curtheme is not None) and (curtheme != ""):
-            self['cmb_themes'].set_active_iter(self.data.get_iter_from_theme_id(self.data.get_theme_id(name=curtheme)))
-            self.loadtheme()
 
-        # start
-        self['mainwindow'].show_all()
+
+    def load_gconf(self):
+        self.gconf = GConfHandler()
+        curtheme   = self.gconf.get(GCONF_CURRENT_THEME)
+        feedback   = self.gconf.get_bool(GCONF_FEEDBACK)
+
+        # Feedback of Windows and Buttons
+        self['chk_winbtn_sounds'].set_active(feedback)
+
+
+        # Current Sound Theme
+        curtheme in (None, "") or self.select_cmb(self.db.get_theme_id(name=curtheme))
+
 
 
     def addsoundchooser(self, table, events):
-
         table.resize(len(events), 2)
         for i, event in enumerate(events):
             
@@ -129,64 +115,63 @@ class GSoundThemeManager(object):
             table.attach(preview, 2, 3, i, i+1, xoptions=gtk.SHRINK, yoptions=gtk.SHRINK)
 
             # add to data
-            self.data.set_fc(fc, sound_id)
-            self.data.set_cb(checkbutton, sound_id)
-            self.data.set_preview(preview, sound_id)
+            self.db.set_fc(fc, sound_id)
+            self.db.set_cb(checkbutton, sound_id)
+            self.db.set_preview(preview, sound_id)
 
-    def _loadfcs(self, theme_id):
-        # cb, fc, previews
-        for sound_id in self.data.get_sound_ids():
-            path = self.data.get_path(theme_id, sound_id)
+
+
+
+    def reload_soundchoosers(self):
+        theme_id = self.db.get_current_theme_id()
+        for sound_id in self.db.get_sound_ids():
+            path = self.db.get_path(theme_id, sound_id)
             if path:
-                self.data.get_fc(sound_id).get_filename() != path and self.data.get_fc(sound_id).set_filename(path)
-                self.data.get_cb(sound_id).set_active(True)
-                self.data.get_preview(sound_id).set_sensitive(True)
+                self.db.get_fc(sound_id).set_filename(path)
+                self.db.get_cb(sound_id).set_active(True)
+                self.db.get_preview(sound_id).set_sensitive(True)
             else:
-                self.data.get_fc(sound_id).unselect_all()
-                self.data.get_cb(sound_id).set_active(False)
-                self.data.get_preview(sound_id).set_sensitive(False)
+                self.db.get_fc(sound_id).unselect_all()
+                self.db.get_cb(sound_id).set_active(False)
+                self.db.get_preview(sound_id).set_sensitive(False)
 
-    def loadtheme(self):
-        theme_id = self.data.get_current_theme_id()
-        self._loadfcs(theme_id)
 
-        # remove-button
-        self['btn_remove_theme'].set_sensitive(self.data.is_local(theme_id))
+
+
+
+
+
+
 
 
     def on_cmb_themes_changed(self, widget, *args): # TODO confirm if add/remove theme action doesnt triggers something wrong
-        theme_id = self.data.get_current_theme_id()
+        if self.reloadfcs: self.do_with_cmb_safe(self.reload_soundchoosers)
 
-        if theme_id is None:
-            return
+        theme_id = self.db.get_current_theme_id()
 
-        if self.reloadfcs:
-            self._loadfcs(theme_id)
+        if theme_id is None: return
 
-        # remove-button
-        self['btn_remove_theme'].set_sensitive(self.data.is_local(theme_id))
+        self['btn_remove_theme'].set_sensitive(self.db.is_local(theme_id))
+
+
+
 
     def on_btn_add_theme_clicked(self, widget, *args):
-        title = 'Untitled%d' % len(self.customnames)
+        self.db.add_new_custom_theme(autoselect=True)
 
-        # add a theme
-        self.customnames.append(title)
-        theme_id = self.data.add_theme(title, {}, False)
 
-        # select the theme added now
-        self['cmb_themes'].set_active_iter(self.data.get_iter_from_theme_id(theme_id))
 
-    def on_btn_remove_theme_clicked(self, widget, *args):
 
+    def on_btn_remove_theme_clicked(self, widget, *args): # TODO error happens?
         dialog = gtk.MessageDialog(type=gtk.MESSAGE_WARNING, buttons=gtk.BUTTONS_YES_NO)
         dialog.set_transient_for(self['mainwindow'])
         dialog.set_markup('You can not be undone removing a theme.\nContinue?')
         answer = dialog.run()
         dialog.destroy()
         if answer == gtk.RESPONSE_YES:
-            theme_id = self.data.get_current_theme_id()
-            if self.data.exists(theme_id):
-                result = removetheme(self.data.get_top(theme_id))
+            theme_id = self.db.get_current_theme_id()
+            if self.db.exists(theme_id):
+                result = removetheme(self.db.get_top(theme_id))
                 if not result:
                     dialog = gtk.MessageDialog(type=gtk.MESSAGE_ERROR, buttons=gtk.BUTTONS_OK)
                     dialog.set_transient_for(self['mainwindow'])
@@ -194,72 +179,92 @@ class GSoundThemeManager(object):
                     dialog.run()
                     dialog.destroy()
             
-            self.reloadfcs = False
-            self.data.remove_theme(theme_id)
-            self.reloadfcs = True
+            self.do_with_cmb_safe(self.db.remove_theme, theme_id)
 
             self['cmb_themes'].set_active(0)
 
+
+
+
+
     def on_fc_file_set(self, widget, *args):
+        if not self.reloadfcs: return
 
-        # share location
         curfol = widget.get_current_folder()
-        for sound_id in self.data.get_sound_ids():
-            fc = self.data.get_fc(sound_id)
+        for sound_id in self.db.get_sound_ids():
+            fc = self.db.get_fc(sound_id)
             fc.get_filename() or fc.set_current_folder(curfol)
-    
-        theme_id = self.data.get_current_theme_id()
-        sound_id = self.data.get_sound_id(fc=widget)
 
-        # preview widget
-        if widget.get_filename():
-            self.data.get_preview(sound_id).set_sensitive(True)
-        else:
-            self.data.get_preview(sound_id).set_sensitive(False)
+        self.db.get_preview(sound_id).set_sensitive(bool(widget.get_filename()))
         
-        # custom
-        if self.data.get_path(theme_id, sound_id) != widget.get_filename():
-            self.set_as_customized(self.get_current_states())
+        theme_id = self.db.get_current_theme_id()
+        sound_id = self.db.get_sound_id(fc=widget)
+        filaname = widget.get_filename()
+        if self.db.get_path(theme_id, sound_id) != filename:
+            if self.db.exists(theme_id):
+                self.do_with_cmb_safe(self.db.add_new_custom_theme, True, True)
+            else:
+                self.db.set_path(theme_id, sound_id, filename)
         
+
+
+
+
     def on_cb_toggled(self, widget, *args):
+        if not self.reloadfcs: return
 
-        sound_id = self.data.get_sound_id(cb=widget)
-        fc = self.data.get_fc(sound_id)
-        pr = self.data.get_preview(sound_id)
+        sound_id = self.db.get_sound_id(cb=widget)
+        fc = self.db.get_fc(sound_id)
+        pr = self.db.get_preview(sound_id)
 
-        # fc & preview
         fc.set_sensitive(widget.get_active())
         pr.set_sensitive(bool(widget.get_active() and fc.get_filename()))
 
-        # custom
-        fc_status = fc.get_filename()
-        if fc_status:
-            self.set_as_customized(self.get_current_states())
+        theme_id = self.db.get_current_theme_id()
+        sound_id = self.db.get_sound_id(cb=widget)
+        filename = fc.get_filename()
+        if filename:
+            if self.db.exists(theme_id):
+                self.do_with_cmb_safe(self.db.add_new_custom_theme, True, True)
+            else:
+                self.db.set_path(theme_id, sound_id, filename if widget.get_active() else None)
+
+
+
+
 
     def on_btn_preview_clicked(self, widget, *args):
-        sound_id = self.data.get_sound_id(preview=widget)
-        fc = self.data.get_fc(sound_id)
-        soundfile = fc.get_filename()
+        sound_id  = self.db.get_sound_id(preview=widget)
+        soundfile = self.db.get_fc(sound_id).get_filename()
 
         # play
-        sound = pygame.mixer.Sound(soundfile)
-        sound.play()
+        p = Process(target=self.preview_sound, args=(soundfile, ))
+        p.start()
+
+
+
+
 
     def on_chk_winbtn_sounds_toggled(self, widget, *args):
         self.gconf.set_bool(GCONF_FEEDBACK, widget.get_active())
 
+
+
+
+
     def on_btn_apply_clicked(self, widget, *args):
+        theme_id = self.db.get_current_theme_id()
+        title    = self.db.get_name(theme_id)
 
-        theme_id = self.data.get_current_theme_id()
-        title = self.data.get_name(theme_id)
-
-        if title in self.customnames or not self.data.exists(theme_id):
-
-            result = self.savetheme(theme_id, title)
-            if not result:
+        if not self.db.exists(theme_id):
+            if not self.savetheme(theme_id, title):
                 return
 
         self.gconf.set(GCONF_CURRENT_THEME, title.lower())
+
+
+
+
 
     def on_btn_save_as_clicked(self, widget, *args):
 
@@ -292,7 +297,7 @@ class GSoundThemeManager(object):
             return text
 
         newname = getText()
-        if self.data.get_theme_id(name=newname):
+        if self.db.get_theme_id(name=newname):
             dialog = gtk.MessageDialog(type=gtk.MESSAGE_WARNING, buttons=gtk.BUTTONS_OK)
             dialog.set_transient_for(self['mainwindow'])
             dialog.set_markup('The same theme already exists.')
@@ -310,12 +315,15 @@ class GSoundThemeManager(object):
             return
 
         if newname:
-            theme_id = self.data.get_current_theme_id()
-            if self.data.exists(theme_id) and self.data.is_local(theme_id):
-                overwriteindextheme(self.data.get_top(theme_id), newname)
+            theme_id = self.db.get_current_theme_id()
+            if self.db.exists(theme_id) and self.db.is_local(theme_id):
+                overwriteindextheme(self.db.get_top(theme_id), newname)
             else:
                 self.savetheme(theme_id, newname)
-            self.data.set_name(theme_id, newname)
+            self.db.set_name(theme_id, newname)
+
+
+
 
 
     def on_btn_install_clicked(self, widget, *args):
@@ -342,11 +350,14 @@ class GSoundThemeManager(object):
                 result = dialog.run()
                 dialog.destroy()
                 
-                theme_id = self.data._append_theme(*result)
-                self['cmb_themes'].set_active_iter(self.data.get_iter_from_theme_id(theme_id))           
+                theme_id = self.db._append_theme(*result)
+                self.db.select_cmb_by_theme_id(theme_id)
+
+
+         
 
     def gtk_main_quit(self, *args):
-        if self.gconf.get(GCONF_CURRENT_THEME) == self.data.get_name(self.data.get_current_theme_id()).lower():
+        if self.gconf.get(GCONF_CURRENT_THEME) == self.db.get_name(self.db.get_current_theme_id()).lower():
             self['mainwindow'].hide_all()
             gtk.main_quit()
         else:
@@ -359,46 +370,26 @@ class GSoundThemeManager(object):
                 self['mainwindow'].hide_all()
                 gtk.main_quit()
 
-    def get_current_states(self):
-        sound_ids = self.data.get_sound_ids()
-        base_dic = self.data.get_dic(self.data.get_current_theme_id())
-        for sound_id in sound_ids:
-            cb = self.data.get_cb(sound_id)
-            fc = self.data.get_fc(sound_id)
-            sound = fc.get_filename()
-            if cb.get_active() and sound:
-                base_dic[sound_id] = sound
-            else:
-                if sound_id in base_dic:
-                    del base_dic[sound_id]
-        return base_dic
 
-    def set_as_customized(self, dic):
 
-        self.reloadfcs = False
 
-        theme_id = self.data.get_current_theme_id()
 
-        customized = bool(self.data.get_name(theme_id) in self.customnames)
-        existing = self.data.get_theme_id_with_exceptions(dic, self.customnames)
 
-        if existing:
-            self['cmb_themes'].set_active_iter(self.data.get_iter_from_theme_id(existing))
-        elif customized:
-            self.data.set_dic(theme_id, dic)
-        else:
-            custom_theme_id = self.data.get_theme_id(name=self.customnames[0])
-            if custom_theme_id is None:
-                custom = self.data.add_theme(self.customnames[0], dic, False)
-                self['cmb_themes'].set_active_iter(self.data.get_iter_from_theme_id(custom))
-            else:
-                self.data.set_dic(custom_theme_id, dic)
-                self['cmb_themes'].set_active_iter(self.data.get_iter_from_theme_id(custom_theme_id))
 
-        self.reloadfcs = True
+
+
+
+
+
+    def select_cmb(self, theme_id):
+        self.db.select_cmb_by_theme_id(theme_id)
+        self['btn_remove_theme'].set_sensitive(self.db.is_local(theme_id))
+
+
+
+
 
     def savetheme(self, theme_id, title):
-        # --Overwrite?--------------------------
         dist = os.path.join(LOCAL_SOUND_DIR, title)
         if os.path.exists(dist):
             result = removetheme(dist)
@@ -410,8 +401,7 @@ class GSoundThemeManager(object):
                 dialog.destroy()
                 return False
 
-        # --Execute------------------------------
-        result = createtheme(title, self.data.get_dic(theme_id))
+        result = createtheme(title, self.db.get_dic(theme_id))
 
         if not result:
             dialog = gtk.MessageDialog(type=gtk.MESSAGE_ERROR, buttons=gtk.BUTTONS_OK)
@@ -423,8 +413,28 @@ class GSoundThemeManager(object):
 
         return True
 
+
+
+
+    def do_with_cmb_safe(self, func, *args):
+        self.reloadfcs = False
+        func(*args)
+        self.reloadfcs = True
+
+
+
+
+    def preview_sound(self, filename):
+        os.system('canberra-gtk-play --file={0}'.format(filename))
+
+
+
+
     def __getitem__(self, key):
         return self.builder.get_object(key)
+
+
+
 
     def auto_connects(self):
         event_handlers = {}
@@ -433,9 +443,23 @@ class GSoundThemeManager(object):
                 event_handlers[itemname] = getattr(self, itemname)
         self.builder.connect_signals(event_handlers)
 
+
+
     def main(self):
         gtk.main()
+
+
+
+
+
+
+
 
 if __name__ == "__main__":
     app = GSoundThemeManager()
     app.main()
+
+
+
+
+

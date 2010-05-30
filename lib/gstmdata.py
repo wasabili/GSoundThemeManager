@@ -39,6 +39,8 @@ class GSTMdata(object):
         for islocal, top, name, dic in findthemes():
             self._append_theme(islocal, top, name, dic, True)
 
+        self.custom_theme_num = 0
+
     def get_sound_ids(self):
         return self.sound_ids.copy()
 
@@ -107,6 +109,14 @@ class GSTMdata(object):
     def get_path(self, theme_id, sound_id):
         dic = self.get_dic(theme_id)
         return dic.get(sound_id)
+
+    def set_path(self, theme_id, sound_id, path):
+        dic = self.get_dic(theme_id)
+        if path is None:
+            del dic[sound_id]
+        else:
+            dic[sound_id] = path
+        self.set_dic(theme_id, dic)
 
     def _append_theme(self, islocal, top, name, dic, existance=True):
         theme_id = self.treemodel.get_string_from_iter(self.liststore.append((name,)))
@@ -220,4 +230,26 @@ class GSTMdata(object):
         self.id_dic[theme_id] = dic
         self.dic_id[id(dic)] = theme_id
 
+    def add_new_custom_theme(self, modify=False, autoselect=False):
+        self.custom_theme_num += 1
+        title = 'Untitled{0}'.format(self.custom_theme_num)
+        dic = self.get_current_states() if modify else {}
+        theme_id = self.add_theme(title, dic, False)
+        if autoselect: self.select_cmb_by_theme_id(theme_id)
+        return theme_id
 
+    def select_cmb_by_theme_id(self, theme_id):
+        self.combobox.set_active_iter(self.get_iter_from_theme_id(theme_id))
+
+    def get_current_states(self):
+        base_dic = self.get_dic(self.get_current_theme_id())
+        for sound_id in self.sound_ids:
+            cb = self.get_cb(sound_id)
+            fc = self.get_fc(sound_id)
+            sound = fc.get_filename()
+            if cb.get_active() and sound:
+                base_dic[sound_id] = sound
+            else:
+                if sound_id in base_dic:
+                    del base_dic[sound_id]
+        return base_dic

@@ -4,12 +4,7 @@
 import sys
 import os
 import os.path
-
-try:
-    import pygtk
-    pygtk.require("2.0")
-except:
-    pass
+import pygtk
 import gtk
 
 
