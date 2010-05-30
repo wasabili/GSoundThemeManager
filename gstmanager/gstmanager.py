@@ -158,7 +158,7 @@ class GSoundThemeManager(object):
             self.do_with_cmb_safe(self.reload_soundchoosers)
 
         theme_id = self.db.get_current_theme_id()
-        if theme_id not is None:
+        if theme_id is not None:
             self['btn_remove_theme'].set_sensitive(self.db.is_local(theme_id))
 
 
