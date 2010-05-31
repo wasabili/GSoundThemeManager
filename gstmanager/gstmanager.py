@@ -132,10 +132,12 @@ class GSoundThemeManager(object):
             path = self.db.get_path(theme_id, sound_id)
             if path:
                 self.db.get_fc(sound_id).set_filename(path)
+                self.db.get_fc(sound_id).set_sensitive(True)
                 self.db.get_cb(sound_id).set_active(True)
                 self.db.get_preview(sound_id).set_sensitive(True)
             else:
                 self.db.get_fc(sound_id).unselect_all()
+                self.db.get_fc(sound_id).set_sensitive(False)
                 self.db.get_cb(sound_id).set_active(False)
                 self.db.get_preview(sound_id).set_sensitive(False)
 
@@ -155,13 +157,12 @@ class GSoundThemeManager(object):
 
 
     def on_cmb_themes_changed(self, widget, *args):
-        if self.event_guard:
-            self.do_with_cmb_safe(self.reload_soundchoosers)
-
         theme_id = self.db.get_current_theme_id()
-        if theme_id is not None:
-            self['btn_remove_theme'].set_sensitive(self.db.is_local(theme_id))
+        if theme_id is not None: self['btn_remove_theme'].set_sensitive(self.db.is_local(theme_id))
 
+        if self.event_guard: return
+
+        self.do_with_cmb_safe(self.reload_soundchoosers)
 
 
 
